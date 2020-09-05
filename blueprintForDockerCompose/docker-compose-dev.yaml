@@ -1,0 +1,59 @@
+# versiunea de docker-compose pe care vrem
+# sa o utilizam
+version: '3.8'
+
+# declararea containerelor pe care vrem sa le folosim
+services: 
+    postgressdb:
+        image: 'postgres'
+        environment: 
+            # de preferat in viata reala (daca ai repo public)
+            # si nu nuami (e ok sa ai secret parola, username, dbname ...)
+            # parola de posgress sa fie salvata
+            # ca env secert
+            # in K8s poti crea un secret printr-o
+            # comanda imperativa
+            - POSTGRES_PASSWORD=postgres_password
+    redisLS:
+        image: 'redis'
+    nginxservice:
+        depends_on: 
+            - numeclientreact
+            - numeservernodejs
+        restart: always
+        build:
+            dockerfile: Dockerfile
+            context: ../blueprintForNginx
+        ports: 
+            - '3001:80' # prot extern port intern
+    numeclientreact:
+        stdin_open: true #important pentru client
+        build: 
+            dockerfile: Dockerfile
+            context: ../blueprintForFrontEndReactAppAkaClient
+        volumes: 
+            - /numeReactApp/node_modules # partea asta de cod zice ca nimeni nu se atinge de node_modules
+            - ../blueprintForFrontEndReactAppAkaClient:/numeReactApp # partea asta de cod face ca atunci cand codul pentru client e modificat local sa se faca update si in container
+    numeservernodejs:
+        depends_on: # aici listezi serviciile de care depinde 
+            - postgressdb
+     
+        # ps nu trebuie sa treaca numele containerului de redis
+        # la depends_on pentru ca nu e necesar, in schimb la postgrss trebui
+        build:
+            dockerfile: Dockerfile
+            context: ../blueprintForServerNodeJs
+        volumes: 
+            - /numeNodeApp/node_modules
+            - ../blueprintForServerNodeJs:/numeNodeApp
+        environment:
+            - REDIS_HOST=redis
+            - REDIS_PORT=6379
+            - PGUSER=postgres
+            - PGHOST=postgressdb
+    
+            - PGDATABASE=postgres
+            - PGPASSWORD=postgres_password
+            - PGPORT=5432
+
+

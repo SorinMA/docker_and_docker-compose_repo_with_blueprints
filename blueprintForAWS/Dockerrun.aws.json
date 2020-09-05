@@ -1,0 +1,34 @@
+{
+    "AWSEBDockerrunVersion": 2,
+    "containerDefinitions": [
+      {
+        "name": "numeclientreact",
+        "image": "patriciu/reactClientApp",
+        "hostname": "numeclientreact",
+        "essential": false,
+        "memory": 128
+      },
+      {
+        "name": "numeservernodej",
+        "image": "patriciu/containerNodejs",
+        "hostname": "numeservernodej",
+        "essential": false,
+        "memory": 128
+      },
+      {
+        "name": "nginxservice",
+        "image": "patriciu/containerNginx",
+        "hostname": "nginxservice",
+        "essential": true,
+        "portMappings": [
+          {
+            "hostPort": 80,
+            "containerPort": 80
+          }
+        ],
+        "links": ["numeclientreact", "numeservernodej"],
+        "memory": 128
+      }
+    ]
+  }
+  
