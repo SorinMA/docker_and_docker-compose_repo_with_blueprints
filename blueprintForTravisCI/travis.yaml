@@ -1,0 +1,42 @@
+sudo: required # ca sa ai drepturi de sudo cand rulezi comenzi
+language: generic
+
+services:
+  - docker
+
+# pregatire imagini (local in Travis CI) pentru
+# a putea rula teste
+before_install:
+  - docker build -t patriciu/reactClientApp -f ../blueprintForFrontEndReactAppAkaClient/Dockerfile. ../blueprintForFrontEndReactAppAkaClient
+
+# zona pentru a rula teste pe imaginile create local
+# sau pentru a rula alte scripturi
+script:
+  - docker run patriciu/reactClientApp npm test -- --coverage
+
+# daca testele au iesit ok
+# builduieste imaginile
+# si le da push pe docker hub
+after_success:
+  - docker build -t patriciu/reactClientApp ../blueprintForFrontEndReactAppAkaClient
+  - docker build -t patriciu/containerNginx ../blueprintForNginx
+  - docker build -t patriciu/containerNodejs ../blueprintForServerNodeJs
+  # Log in to the docker CLI
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin
+  # Take those images and push them to docker hub
+  - docker push patriciu/reactClientApp
+  - docker push patriciu/containerNginx
+  - docker push patriciu/containerNodejs
+
+# zona de credentiale publice pentru EBK  
+deploy:
+  provider: elasticbeanstalk
+  region: 'us-east-1'
+  app: 'numeAppInEBK'
+  env: 'NumeEnvInEBK'
+  bucket_name: 'nameBucketEBK'
+  bucket_path: 'pathEBKBucket'
+  on:
+    branch: master
+  access_key_id: $AWS_ACCESS_KEY
+  secret_access_key: $AWS_SECRET_KEY
